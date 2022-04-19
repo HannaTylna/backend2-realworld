@@ -179,7 +179,7 @@ router.get("/:slug", async (req, res) => {
 // Get comments
 router.get("/:slug/comments", async (req, res) => {
   const { slug } = req.params
-  const comments = await Comment.find({ slug })
+  const comments = await Comment.find({ slug }).populate("author").exec()
 
   if (!comments) {
     return res.status(404).json({ success: false, msg: "No comments found." })
