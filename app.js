@@ -22,7 +22,7 @@ app.use("/api/articles", articlesRouter)
 app.use("/api/tags", tagsRouter)
 app.use("/api/profiles", profilesRouter)
 app.use("/api/users", usersRouter)
-app.use("/api/user", userRouter)
+app.use("/api/user", userRouter)  
 
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"))

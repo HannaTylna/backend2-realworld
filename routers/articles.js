@@ -59,7 +59,6 @@ router.get("/", async (req, res) => {
 
   if (typeof req.query.limit !== "undefined") {
     limit = req.query.limit
-    console.log(typeof limit)
   }
   if (typeof req.query.offset !== "undefined") {
     offset = req.query.offset
@@ -186,14 +185,18 @@ router.put("/:slug", async (req, res) => {
 
   const findSlug = await Article.findOne({ slug: slug })
 
-  res.json({ article: { findSlug } })
+  res.json({ article: findSlug })
 })
 
 router.delete("/:slug", async (req, res) => {
   const SlugTitle = req.params.slug
-
-  const cancel = await Article.deleteOne({ title: SlugTitle })
-  res.json("")
+  const user = req.user
+  if (user) {
+    const cancel = await Article.deleteOne({ slug: SlugTitle })
+    res.json(SlugTitle)
+  } else {
+    res.json("not found")
+  }
 })
 
 module.exports = router
