@@ -59,6 +59,7 @@ router.get("/", async (req, res) => {
 
   if (typeof req.query.limit !== "undefined") {
     limit = req.query.limit
+    console.log(typeof limit)
   }
   if (typeof req.query.offset !== "undefined") {
     offset = req.query.offset
@@ -168,6 +169,31 @@ router.get("/:slug", async (req, res) => {
     favorited: article.favoritedBy.includes(req.user?.userId),
   }
   res.json({ article: processedArticle })
+})
+
+router.put("/:slug", async (req, res) => {
+  const { slug } = req.params
+  const { title, description, body } = req.body.article
+
+  const tagList = req.body.article.tagList || []
+
+  const tags = await saveTags(tagList)
+
+  const update = await Article.findOneAndUpdate(
+    { slug },
+    { title, description, body, tagList: tags }
+  )
+
+  const findSlug = await Article.findOne({ slug: slug })
+
+  res.json({ article: { findSlug } })
+})
+
+router.delete("/:slug", async (req, res) => {
+  const SlugTitle = req.params.slug
+
+  const cancel = await Article.deleteOne({ title: SlugTitle })
+  res.json("")
 })
 
 module.exports = router
