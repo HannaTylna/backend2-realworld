@@ -6,8 +6,15 @@ const commentSchema = new mongoose.Schema(
     body: { type: String, required: true },
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: false },
+  }
 )
+commentSchema.virtual("id").get(function () {
+  return this._id.toHexString()
+})
 
 const Comment = mongoose.model("Comment", commentSchema)
 
