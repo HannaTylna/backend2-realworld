@@ -178,25 +178,38 @@ router.put("/:slug", async (req, res) => {
 
   const tags = await saveTags(tagList)
 
-  const update = await Article.findOneAndUpdate(
+  const updatedArticle = await Article.findOneAndUpdate(
     { slug },
-    { title, description, body, tagList: tags }
+    { title, description, body, tagList: tags },
+    { returnDocument: "after" }
   )
 
-  const findSlug = await Article.findOne({ slug: slug })
+  // const findSlug = await Article.findOne({ slug: slug })
 
-  res.json({ article: findSlug })
+  res.json({
+    article: {
+      ...updatedArticle.toObject(),
+      tagList: updatedArticle.tagList.map((tag) => tag.name).sort(),
+      favorited: updatedArticle.favoritedBy.includes(req.user?.userId),
+    },
+  })
 })
 
 router.delete("/:slug", async (req, res) => {
-  const SlugTitle = req.params.slug
+  const slug = req.params.slug
   const user = req.user
   if (user) {
-    const cancel = await Article.deleteOne({ slug: SlugTitle })
-    res.json(SlugTitle)
-  } else {
-    res.json("not found")
+    const deletedArticle = await Article.deleteOne({
+      slug,
+      author: user.userId,
+    })
+    if (deletedArticle.deletedCount) {
+      return res.sendStatus(204)
+    } else {
+      return res.sendStatus(404)
+    }
   }
+  res.sendStatus(401)
 })
 
 module.exports = router
