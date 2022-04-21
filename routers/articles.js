@@ -247,6 +247,8 @@ router.post("/:slug/comments", requireLogin, async (req, res) => {
     })
 
     const comment = await newComment.save()
+    await comment.populate("author")
+
     res.status(200).json({ comment })
   } catch (error) {
     return res
