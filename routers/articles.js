@@ -214,6 +214,7 @@ router.delete("/:slug", async (req, res) => {
     }
   }
   res.sendStatus(401)
+})
 
 router.get("/:slug/comments", async (req, res) => {
   const { slug } = req.params
