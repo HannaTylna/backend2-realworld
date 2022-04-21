@@ -10,4 +10,12 @@ const authorizeUser = (req, res, next) => {
   next()
 }
 
-module.exports = { authorizeUser }
+const requireLogin = (req, res, next) => {
+  if (req.user) {
+    next()
+  } else {
+    res.status(401).json("Login required!")
+  }
+}
+
+module.exports = { authorizeUser, requireLogin }
