@@ -5,6 +5,8 @@ const { Tag } = require("../models/tag")
 const { filterUnique, lowerCase } = require("../utils/helpers")
 const slugify = require("slugify")
 const { User } = require("../models/user")
+const { Comment } = require("../models/comment")
+const { requireLogin } = require("../middleware/auth")
 
 const router = Router()
 
@@ -49,7 +51,7 @@ router.post("/", async (req, res) => {
 
   const savedArticle = await article.save()
 
-  res.json({ article: savedArticle })
+  res.json({ article: { ...savedArticle.toObject(), favorited: false } })
 })
 
 router.get("/", async (req, res) => {
@@ -162,10 +164,14 @@ router.get("/:slug", async (req, res) => {
     .populate("tagList")
     .exec()
 
-  const processedArticle = {
-    ...article.toObject(),
-    tagList: article.tagList.map((tag) => tag.name).sort(),
-    favorited: article.favoritedBy.includes(req.user?.userId),
+  let processedArticle = {}
+
+  if (article) {
+    processedArticle = {
+      ...article.toObject(),
+      tagList: article.tagList.map((tag) => tag.name).sort(),
+      favorited: article.favoritedBy.includes(req.user?.userId),
+    }
   }
   res.json({ article: processedArticle })
 })
@@ -183,8 +189,6 @@ router.put("/:slug", async (req, res) => {
     { title, description, body, tagList: tags },
     { returnDocument: "after" }
   )
-
-  // const findSlug = await Article.findOne({ slug: slug })
 
   res.json({
     article: {
@@ -210,6 +214,72 @@ router.delete("/:slug", async (req, res) => {
     }
   }
   res.sendStatus(401)
+
+router.get("/:slug/comments", async (req, res) => {
+  const { slug } = req.params
+  const comments = await Comment.find({ slug }).populate("author").exec()
+
+  if (!comments) {
+    return res.status(404).json({ success: false, msg: "No comments found." })
+  }
+
+  res.json({ comments })
+})
+
+router.post("/:slug/comments", requireLogin, async (req, res) => {
+  const { slug } = req.params
+  const { body } = req.body.comment
+  const { userId } = req.user
+
+  try {
+    const articleId = await Article.findOne({ slug }, { _id: 1 })
+
+    if (!articleId) {
+      return res
+        .status(404)
+        .json({ success: false, msg: `There is no article with slug ${slug}` })
+    }
+    const newComment = new Comment({
+      slug,
+      body,
+      author: userId,
+    })
+
+    const comment = await newComment.save()
+    res.status(200).json({ comment })
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, msg: "Internal error when saving comment" })
+  }
+})
+
+router.delete("/:slug/comments/:commentId", requireLogin, async (req, res) => {
+  const { slug, commentId } = req.params
+  const { userId } = req.user
+
+  try {
+    const comment = await Comment.findById(commentId)
+    const deletingOwnComment = comment?.author?.toString() === userId
+    const articleVerified = comment?.slug === slug
+
+    if (deletingOwnComment && articleVerified) {
+      try {
+        await comment.deleteOne()
+        res
+          .status(200)
+          .json({ success: true, msg: "Your message has been deleted" })
+      } catch (error) {
+        res.status(500).json(error)
+      }
+    } else {
+      res
+        .status(401)
+        .json({ success: false, msg: "You can delete only your comment" })
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, error })
+  }
 })
 
 module.exports = router
