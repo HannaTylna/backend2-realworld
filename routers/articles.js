@@ -176,7 +176,45 @@ router.get("/:slug", async (req, res) => {
   res.json({ article: processedArticle })
 })
 
-// Get comments
+router.put("/:slug", async (req, res) => {
+  const { slug } = req.params
+  const { title, description, body } = req.body.article
+
+  const tagList = req.body.article.tagList || []
+
+  const tags = await saveTags(tagList)
+
+  const updatedArticle = await Article.findOneAndUpdate(
+    { slug },
+    { title, description, body, tagList: tags },
+    { returnDocument: "after" }
+  )
+
+  res.json({
+    article: {
+      ...updatedArticle.toObject(),
+      tagList: updatedArticle.tagList.map((tag) => tag.name).sort(),
+      favorited: updatedArticle.favoritedBy.includes(req.user?.userId),
+    },
+  })
+})
+
+router.delete("/:slug", async (req, res) => {
+  const slug = req.params.slug
+  const user = req.user
+  if (user) {
+    const deletedArticle = await Article.deleteOne({
+      slug,
+      author: user.userId,
+    })
+    if (deletedArticle.deletedCount) {
+      return res.sendStatus(204)
+    } else {
+      return res.sendStatus(404)
+    }
+  }
+  res.sendStatus(401)
+
 router.get("/:slug/comments", async (req, res) => {
   const { slug } = req.params
   const comments = await Comment.find({ slug }).populate("author").exec()
@@ -188,7 +226,6 @@ router.get("/:slug/comments", async (req, res) => {
   res.json({ comments })
 })
 
-// Create comment
 router.post("/:slug/comments", requireLogin, async (req, res) => {
   const { slug } = req.params
   const { body } = req.body.comment
@@ -217,7 +254,6 @@ router.post("/:slug/comments", requireLogin, async (req, res) => {
   }
 })
 
-// Delete comment
 router.delete("/:slug/comments/:commentId", requireLogin, async (req, res) => {
   const { slug, commentId } = req.params
   const { userId } = req.user
