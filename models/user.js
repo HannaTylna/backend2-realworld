@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
 })
 
 userSchema.pre("save", async function (next) {
+  console.log("pre save")
   if (this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, 10)
   }
@@ -20,8 +21,11 @@ userSchema.pre("save", async function (next) {
 
 userSchema.pre("findOneAndUpdate", async function (next) {
   const valuesToUpdate = this.getUpdate()
+
   if (valuesToUpdate.password) {
     valuesToUpdate.password = await bcrypt.hash(valuesToUpdate.password, 10)
+  } else {
+    delete valuesToUpdate.password
   }
   next()
 })

@@ -49,7 +49,7 @@ router.post("/", async (req, res) => {
 
   const savedArticle = await article.save()
 
-  res.json({ article: savedArticle })
+  res.json({ article: { ...savedArticle.toObject(), favorited: false } })
 })
 
 router.get("/", async (req, res) => {
